@@ -3,34 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#ffffff" />
-    <title>Simple Menu App</title>
+    <title>Menu with Cart</title>
     <style>
       body {
         margin: 0;
         font-family: sans-serif;
         background: #f5f5f5;
+        overflow-x: hidden;
       }
+
       .menu {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 12px;
         padding: 20px;
       }
+
       .dish {
         background: #fff;
         border: 2px solid #ccc;
         border-radius: 10px;
         text-align: center;
         padding: 20px;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         cursor: pointer;
         user-select: none;
         transition: transform 0.1s ease;
       }
+
       .dish:active {
         transform: scale(0.95);
       }
+
       .cart {
         position: fixed;
         bottom: 0;
@@ -43,7 +47,9 @@
         justify-content: space-between;
         align-items: center;
         font-size: 1rem;
+        z-index: 1000;
       }
+
       .checkout-btn {
         padding: 8px 16px;
         font-size: 1rem;
@@ -53,28 +59,106 @@
         border-radius: 5px;
         cursor: pointer;
       }
+
+      .cart-bar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 20%;
+        max-width: 400px;
+        height: 100%;
+        background: #fff;
+        border-left: 1px solid #ccc;
+        box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+        transition: right 0.3s ease;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        z-index: 999;
+        overflow-y: auto;
+      }
+
+      .cart-bar.open {
+        transform: translateX(0);
+      }
+
+      .cart-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        font-size: 1rem;
+      }
+
+      .cart-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .cart-controls button {
+        padding: 4px 10px;
+        font-size: 1rem;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .cart-controls span {
+        width: 20px;
+        text-align: center;
+      }
+
+      h3 {
+        margin-top: 0;
+      }
+
+      .cart-breakdown {
+        margin-top: 20px;
+        border-top: 1px solid #ccc;
+        padding-top: 10px;
+        font-size: 1rem;
+      }
+
+      .total {
+        font-weight: bold;
+        margin-top: 10px;
+      }
     </style>
   </head>
   <body>
     <div class="menu" id="menu"></div>
 
     <div class="cart">
-      <span id="cart-summary">Cart: 0 items</span>
+      <span id="cart-summary" onclick="toggleCartBar()">Cart: 0 items</span>
       <button class="checkout-btn" onclick="checkout()">Checkout</button>
     </div>
 
+    <div class="cart-bar" id="cart-bar"></div>
+
     <script>
-      const dishes = ["Pork", "Chicken", "Beef", "Fish", "Tofu", "Shrimp"];
+      const dishes = {
+        Pork: 80,
+        Chicken: 70,
+        Beef: 90,
+        Frogs: 120,
+        Rice: 30,
+      };
+
       const cart = {};
 
       const menuEl = document.getElementById("menu");
       const cartSummaryEl = document.getElementById("cart-summary");
+      const cartBarEl = document.getElementById("cart-bar");
 
       function updateCartSummary() {
-        const total = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
-        cartSummaryEl.textContent = `Cart: ${total} item${
-          total === 1 ? "" : "s"
+        const totalQty = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
+        cartSummaryEl.textContent = `Cart: ${totalQty} item${
+          totalQty === 1 ? "" : "s"
         }`;
+        updateCartBar();
       }
 
       function addToCart(dish) {
@@ -82,28 +166,107 @@
         updateCartSummary();
       }
 
-      function checkout() {
-        let order = "Order Summary:\n\n";
-        for (const [dish, qty] of Object.entries(cart)) {
-          order += `${dish}: ${qty}\n`;
+      function removeFromCart(dish) {
+        if (cart[dish] > 1) {
+          cart[dish]--;
+        } else {
+          delete cart[dish];
         }
-        alert(order);
-
-        // Bluetooth print logic would go here
-        // Example: send order string to printer
-
-        // Reset cart
-        for (const key in cart) delete cart[key];
         updateCartSummary();
       }
 
-      dishes.forEach((dish) => {
+      function updateCartBar() {
+        cartBarEl.innerHTML = "<h3>Your Cart</h3>";
+
+        let total = 0;
+
+        for (const [dish, qty] of Object.entries(cart)) {
+          const price = dishes[dish];
+          const subtotal = qty * price;
+          total += subtotal;
+
+          const item = document.createElement("div");
+          item.className = "cart-item";
+
+          const name = document.createElement("span");
+          name.textContent = `${dish}`;
+
+          const controls = document.createElement("div");
+          controls.className = "cart-controls";
+
+          const minus = document.createElement("button");
+          minus.textContent = "-";
+          minus.onclick = () => removeFromCart(dish);
+
+          const count = document.createElement("span");
+          count.textContent = qty;
+
+          const plus = document.createElement("button");
+          plus.textContent = "+";
+          plus.onclick = () => addToCart(dish);
+
+          controls.appendChild(minus);
+          controls.appendChild(count);
+          controls.appendChild(plus);
+
+          item.appendChild(name);
+          item.appendChild(controls);
+
+          cartBarEl.appendChild(item);
+        }
+
+        const breakdown = document.createElement("div");
+        breakdown.className = "cart-breakdown";
+
+        for (const [dish, qty] of Object.entries(cart)) {
+          const price = dishes[dish];
+          const subtotal = qty * price;
+          const line = document.createElement("div");
+          line.textContent = `${dish} × ${qty} = ₱${subtotal}`;
+          breakdown.appendChild(line);
+        }
+
+        if (Object.keys(cart).length === 0) {
+          cartBarEl.innerHTML += "<p>Your cart is empty.</p>";
+        } else {
+          const totalEl = document.createElement("div");
+          totalEl.className = "total";
+          totalEl.textContent = `Total: ₱${total}`;
+          breakdown.appendChild(totalEl);
+          cartBarEl.appendChild(breakdown);
+        }
+      }
+
+      function toggleCartBar() {
+        cartBarEl.classList.toggle("open");
+      }
+
+      function checkout() {
+        let order = "Order Summary:\n\n";
+        let total = 0;
+        for (const [dish, qty] of Object.entries(cart)) {
+          const price = dishes[dish];
+          const subtotal = qty * price;
+          order += `${dish} × ${qty} = ₱${subtotal}\n`;
+          total += subtotal;
+        }
+        order += `\nTotal: ₱${total}`;
+
+        alert(order); // send to bluetooth printer
+
+        for (const key in cart) delete cart[key];
+        updateCartSummary();
+        toggleCartBar();
+      }
+
+      // Initialize menu
+      for (const [dish, price] of Object.entries(dishes)) {
         const div = document.createElement("div");
         div.className = "dish";
-        div.textContent = dish;
+        div.textContent = `${dish} ₱${price}`;
         div.onclick = () => addToCart(dish);
         menuEl.appendChild(div);
-      });
+      }
     </script>
   </body>
 </html>
