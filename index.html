@@ -252,7 +252,8 @@
         }
         order += `\nTotal: ₱${total}`;
 
-        alert(order); // send to bluetooth printer
+        const encoded = encodeURIComponent(order);
+        window.location.href = `rawbt://${encoded}`;
 
         for (const key in cart) delete cart[key];
         updateCartSummary();
