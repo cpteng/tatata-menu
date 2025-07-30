@@ -138,6 +138,8 @@
 
     <div class="cart-bar" id="cart-bar"></div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
     <script>
       const dishes = {
         Pork: 80,
@@ -241,23 +243,60 @@
         cartBarEl.classList.toggle("open");
       }
 
+      //   function checkout() {
+      //     let order = "Order Summary:\n\n";
+      //     let total = 0;
+      //     for (const [dish, qty] of Object.entries(cart)) {
+      //       const price = dishes[dish];
+      //       const subtotal = qty * price;
+      //       order += `${dish} × ${qty} = ₱${subtotal}\n`;
+      //       total += subtotal;
+      //     }
+      //     order += `\nTotal: ₱${total}`;
+
+      //     const encoded = encodeURIComponent(order);
+      //     window.location.href = `rawbt://${encoded}`;
+
+      //     for (const key in cart) delete cart[key];
+      //     updateCartSummary();
+      //     toggleCartBar();
+      //   }
+
       function checkout() {
-        let order = "Order Summary:\n\n";
         let total = 0;
+        const summaryDiv = document.createElement("div");
+        summaryDiv.style.padding = "20px";
+        summaryDiv.style.fontFamily = "monospace";
+        summaryDiv.style.fontSize = "16px";
+        summaryDiv.style.background = "white";
+        summaryDiv.style.color = "black";
+        summaryDiv.innerHTML =
+          '<h3>Order Summary</h3><ul style="list-style:none;padding:0;margin:0">';
+
         for (const [dish, qty] of Object.entries(cart)) {
-          const price = dishes[dish];
+          const price = dishes[dish] || 0;
           const subtotal = qty * price;
-          order += `${dish} × ${qty} = ₱${subtotal}\n`;
+          summaryDiv.innerHTML += `<li>${dish} × ${qty} = ₱${subtotal}</li>`;
           total += subtotal;
         }
-        order += `\nTotal: ₱${total}`;
 
-        const encoded = encodeURIComponent(order);
-        window.location.href = `rawbt://${encoded}`;
+        summaryDiv.innerHTML += `</ul><p><strong>Total: ₱${total}</strong></p>`;
 
-        for (const key in cart) delete cart[key];
-        updateCartSummary();
-        toggleCartBar();
+        document.body.appendChild(summaryDiv);
+
+        html2canvas(summaryDiv).then((canvas) => {
+          const dataURL = canvas.toDataURL("image/png");
+          const link = document.createElement("a");
+          link.href = `rawbt:${dataURL}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          document.body.removeChild(summaryDiv);
+
+          for (const key in cart) delete cart[key];
+          updateCartSummary();
+          toggleCartBar();
+        });
       }
 
       // Initialize menu
